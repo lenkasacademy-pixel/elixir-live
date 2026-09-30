@@ -179,8 +179,10 @@ function stamp(){
   const at = Date.parse(GENERATED), mins = (Date.now() - at) / 60000;
   const cls = mins > 60 ? "off" : mins > 20 ? "stale" : "";
   const when = new Date(at).toLocaleString("en-IN", { timeZone:"Asia/Kolkata", day:"numeric", month:"short", hour:"numeric", minute:"2-digit" });
-  el.innerHTML = `<span class="dot ${cls}"></span><span>Live &middot; pulled from Meta ${esc(ago(at))} (${esc(when)} IST)${mins > 60 ? " &mdash; refresh has stalled" : ""}</span>`;
+  el.innerHTML = `<span class="dot ${cls}"></span><span>Live &middot; pulled from Meta ${esc(ago(at))} (${esc(when)} IST)${mins > 60 ? " &mdash; refresh has stalled" : ""}</span>`
+    + `<button type="button" class="refresh" id="reload" title="Meta is pulled every 5 minutes; this loads the latest pull now">${esc(reloadLabel)}</button>`;
 }
+let reloadLabel = "Refresh";
 
 function load(d){
   ({ SNAP_DAY, CID, CAMP, ADS, DAILY, AGE, ANAME, ADAY, YEAR } = d);
@@ -211,6 +213,19 @@ async function pull(){
 }
 pull();
 setInterval(pull, 60000);
+
+/* Manual refresh: re-reads the latest pull now. It cannot make Meta pull sooner -
+   that would need a GitHub key in this public page - but pulls land every 5 minutes. */
+document.addEventListener("click", async e => {
+  const b = e.target.closest("#reload");
+  if (!b || b.disabled) return;
+  const before = GENERATED;
+  b.disabled = true; b.textContent = "Refreshing…";
+  await pull();
+  reloadLabel = GENERATED !== before ? "Updated" : "Up to date";
+  stamp();
+  setTimeout(() => { reloadLabel = "Refresh"; stamp(); }, 2500);
+});
 ''', regex=True)
 
 # ---- styles for the balance tab --------------------------------------------
