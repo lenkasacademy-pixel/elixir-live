@@ -242,6 +242,10 @@ footer{margin-top:44px; padding-top:16px; border-top:1px solid var(--hair); font
 .meter i.warn{background:var(--warn)} .meter i.crit{background:var(--crit)}
 .bal-grid{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; margin-top:18px}
 .bal-3{grid-template-columns:repeat(3,1fr)}
+.bal-3 > div{padding:14px 16px}
+.bal-3 .v{font-size:17px}
+.bal-3 .v small{display:block; margin:4px 0 0; font-size:11.5px; line-height:1.4}
+.bal-grid table{min-width:0}
 .hours{display:flex; align-items:flex-end; gap:3px; height:130px; padding:14px 18px 8px}
 .hours .hr{flex:1; height:100%; display:flex; flex-direction:column; justify-content:flex-end; align-items:center; gap:4px}
 .hours .hr i{display:block; width:100%; background:var(--accent); border-radius:2px 2px 0 0}
@@ -1014,6 +1018,7 @@ function truncNote(key){
    ============================================================ */
 let queued = false;
 function paint(){
+  if (document.hidden){ renderScope(); renderBand(); renderLatest(); renderRail(); renderSheet(); return; }
   if (queued) return;
   queued = true;
   requestAnimationFrame(() => {
