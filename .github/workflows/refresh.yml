@@ -1,13 +1,20 @@
 name: Refresh ad data
 
+# GitHub treats a */5 schedule as a suggestion: on these repos it fired about
+# once every five hours. So one run loops for ~5.5 hours, pulling every 5 minutes,
+# then dispatches its successor. The schedule stays only as a backstop that
+# restarts the chain if a run ever dies.
 on:
   schedule:
-    - cron: "*/5 * * * *"   # GitHub runs this on a best-effort basis; expect 5-15 min gaps
+    - cron: "*/5 * * * *"
   workflow_dispatch:
 
 permissions:
   contents: write
+  actions: write
 
+# One run at a time. A schedule tick during a long run waits as the single
+# pending run, which is harmless: it starts the next loop when this one ends.
 concurrency:
   group: refresh
   cancel-in-progress: false
@@ -15,20 +22,33 @@ concurrency:
 jobs:
   refresh:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 350
     steps:
       - uses: actions/checkout@v4
-      - name: Pull from Meta
+      - name: Pull from Meta every 5 minutes for ~5.5 hours
         env:
           META_TOKEN: ${{ secrets.META_TOKEN }}
-        run: python3 fetch.py
-      # data.json lives alone on the `data` branch, force-pushed as a single commit:
-      # no history piles up and main (the Pages site) is never rebuilt.
-      - name: Publish data.json to the data branch
+          PUSH_URL: https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}
         run: |
-          mkdir out && mv data.json out/ && cd out
-          git init -q -b data
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data.json && git commit -q -m "Ad data $(date -u +%FT%TZ)"
-          git push -q -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" data
+          # data.json lives alone on the `data` branch, force-pushed as a single commit:
+          # no history piles up and main (the Pages site) is never rebuilt.
+          publish() {
+            rm -rf out && mkdir out && mv data.json out/ && (
+              cd out && git init -q -b data &&
+              git config user.name "github-actions[bot]" &&
+              git config user.email "41898282+github-actions[bot]@users.noreply.github.com" &&
+              git add data.json && git commit -q -m "Ad data $(date -u +%FT%TZ)" &&
+              git push -q -f "$PUSH_URL" data )
+          }
+          end=$((SECONDS + 330 * 60))
+          while [ "$SECONDS" -lt "$end" ]; do
+            started=$SECONDS
+            if python3 fetch.py; then publish || echo "push failed"; else echo "fetch failed"; fi
+            wait=$((300 - (SECONDS - started)))
+            [ "$wait" -gt 0 ] && sleep "$wait"
+          done
+      - name: Start the next run
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run refresh.yml -R "${{ github.repository }}" --ref main

@@ -9,8 +9,10 @@ at recent pace, prepaid top-ups, daily charges, and today's spend by the hour.
 
 - `fetch.py` pulls ad account 1358051173168970 from the Meta Marketing API and writes `data.json`
   in exactly the ledger's array shapes (`CID`, `CAMP`, `ADS`, `DAILY`, `AGE`, `ANAME`, `ADAY`) plus `BALANCE`.
-- `.github/workflows/refresh.yml` runs it every 5 minutes (GitHub's schedule is best-effort, so
-  gaps of 5–15 minutes are normal) and force-pushes `data.json` alone to the `data` branch.
+- `.github/workflows/refresh.yml` runs it every 5 minutes and force-pushes `data.json` alone to the
+  `data` branch. GitHub's `*/5` schedule is not to be trusted — on these repos it fired about once
+  every five hours — so each run loops for ~5.5 hours, pulling every 5 minutes, then dispatches its
+  successor. The schedule is only a backstop that restarts the chain if it breaks.
 - `index.html` (served by Pages from `main`) re-reads that file every minute. The stamp dot goes
   amber after 20 minutes without new data and grey after 60.
 
