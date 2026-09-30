@@ -1100,8 +1100,7 @@ function sheetBalance(){
        system user does not have. What is shown is everything this token can see &mdash; the last top-up and
        what has been charged since. The first charge after a top-up can cover spend from before it, so
        <em>used since</em> leans high. The spending limit above is exact and is the one that stops the ads
-       outright. On 28 Sep delivery all but stopped for six hours before &#8377;30,000 was added at 9:32 pm,
-       so keep an eye on both.`) : "";
+       outright. If spend stalls for hours while budget is left, check both.`) : "";
 
   const topups = card("Money added", "last 60 days, newest first", table([
     { label:"When (IST)", num:false, cell:r => esc(istTime(r.t)), sortVal:r => Date.parse(r.t.replace("+0000","Z")) },
